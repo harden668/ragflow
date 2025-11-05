@@ -26,21 +26,21 @@ import traceback
 
 from api.db.services.connector_service import SyncLogsService
 from api.db.services.knowledgebase_service import KnowledgebaseService
-from api.utils.log_utils import init_root_logger, get_project_base_directory
-from api.utils.configs import show_configs
+from common.log_utils import init_root_logger
+from common.config_utils import show_configs
 from common.data_source import BlobStorageConnector
 import logging
 import os
 from datetime import datetime, timezone
-import tracemalloc
 import signal
 import trio
 import faulthandler
-from api.db import FileSource, TaskStatus
+from common.constants import FileSource, TaskStatus
 from api import settings
 from api.versions import get_ragflow_version
 from common.data_source.confluence_connector import ConfluenceConnector
 from common.data_source.utils import load_all_docs_from_checkpoint_connector
+from common.signal_utils import start_tracemalloc_and_snapshot, stop_tracemalloc
 
 MAX_CONCURRENT_TASKS = int(os.environ.get('MAX_CONCURRENT_TASKS', "5"))
 task_limiter = trio.Semaphore(MAX_CONCURRENT_TASKS)
@@ -170,7 +170,7 @@ class Confluence(SyncBase):
             docs = [{
                 "id": doc.id,
                 "connector_id": task["connector_id"],
-                "source": FileSource.CONFLUENNCE,
+                "source": FileSource.CONFLUENCE,
                 "semantic_identifier": doc.semantic_identifier,
                 "extension": doc.extension,
                 "size_bytes": doc.size_bytes,
@@ -179,7 +179,7 @@ class Confluence(SyncBase):
             }]
 
             e, kb = KnowledgebaseService.get_by_id(task["kb_id"])
-            err, dids = SyncLogsService.duplicate_and_parse(kb, docs, task["tenant_id"], f"{FileSource.CONFLUENNCE}/{task['connector_id']}")
+            err, dids = SyncLogsService.duplicate_and_parse(kb, docs, task["tenant_id"], f"{FileSource.CONFLUENCE}/{task['connector_id']}")
             SyncLogsService.increase_docs(task["id"], min_update, max_update, len(docs), "\n".join(err), len(err))
             doc_num += len(docs)
 
@@ -261,41 +261,6 @@ async def dispatch_tasks():
 
 
 stop_event = threading.Event()
-
-
-# SIGUSR1 handler: start tracemalloc and take snapshot
-def start_tracemalloc_and_snapshot(signum, frame):
-    if not tracemalloc.is_tracing():
-        logging.info("start tracemalloc")
-        tracemalloc.start()
-    else:
-        logging.info("tracemalloc is already running")
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    snapshot_file = f"snapshot_{timestamp}.trace"
-    snapshot_file = os.path.abspath(os.path.join(get_project_base_directory(), "logs", f"{os.getpid()}_snapshot_{timestamp}.trace"))
-
-    snapshot = tracemalloc.take_snapshot()
-    snapshot.dump(snapshot_file)
-    current, peak = tracemalloc.get_traced_memory()
-    if sys.platform == "win32":
-        import  psutil
-        process = psutil.Process()
-        max_rss = process.memory_info().rss / 1024
-    else:
-        import resource
-        max_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    logging.info(f"taken snapshot {snapshot_file}. max RSS={max_rss / 1000:.2f} MB, current memory usage: {current / 10**6:.2f} MB, Peak memory usage: {peak / 10**6:.2f} MB")
-
-
-# SIGUSR2 handler: stop tracemalloc
-def stop_tracemalloc(signum, frame):
-    if tracemalloc.is_tracing():
-        logging.info("stop tracemalloc")
-        tracemalloc.stop()
-    else:
-        logging.info("tracemalloc not running")
-
 
 
 def signal_handler(sig, frame):

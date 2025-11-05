@@ -29,7 +29,6 @@ from api.db.services.pipeline_operation_log_service import PipelineOperationLogS
 from common.connection_utils import timeout
 from common.base64_image import image2id
 from common.log_utils import init_root_logger
-from common.file_utils import get_project_base_directory
 from common.config_utils import show_configs
 from graphrag.general.index import run_graphrag_for_kb
 from graphrag.utils import get_llm_cache, set_llm_cache, get_tags_from_cache, set_tags_to_cache
@@ -45,14 +44,13 @@ import re
 from functools import partial
 from multiprocessing.context import TimeoutError
 from timeit import default_timer as timer
-import tracemalloc
 import signal
 import trio
 import exceptiongroup
 import faulthandler
 import numpy as np
 from peewee import DoesNotExist
-from api.db import LLMType, ParserType, PipelineTaskType
+from common.constants import LLMType, ParserType, PipelineTaskType
 from api.db.services.document_service import DocumentService
 from api.db.services.llm_service import LLMBundle
 from api.db.services.task_service import TaskService, has_canceled, CANVAS_DEBUG_DOC_ID, GRAPH_RAPTOR_FAKE_DOC_ID
@@ -69,6 +67,7 @@ from common.token_utils import num_tokens_from_string, truncate
 from rag.utils.redis_conn import REDIS_CONN, RedisDistributedLock
 from rag.utils.storage_factory import STORAGE_IMPL
 from graphrag.utils import chat_limiter
+from common.signal_utils import start_tracemalloc_and_snapshot, stop_tracemalloc
 
 BATCH_SIZE = 64
 
@@ -127,40 +126,6 @@ def signal_handler(sig, frame):
     stop_event.set()
     time.sleep(1)
     sys.exit(0)
-
-
-# SIGUSR1 handler: start tracemalloc and take snapshot
-def start_tracemalloc_and_snapshot(signum, frame):
-    if not tracemalloc.is_tracing():
-        logging.info("start tracemalloc")
-        tracemalloc.start()
-    else:
-        logging.info("tracemalloc is already running")
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    snapshot_file = f"snapshot_{timestamp}.trace"
-    snapshot_file = os.path.abspath(os.path.join(get_project_base_directory(), "logs", f"{os.getpid()}_snapshot_{timestamp}.trace"))
-
-    snapshot = tracemalloc.take_snapshot()
-    snapshot.dump(snapshot_file)
-    current, peak = tracemalloc.get_traced_memory()
-    if sys.platform == "win32":
-        import  psutil
-        process = psutil.Process()
-        max_rss = process.memory_info().rss / 1024
-    else:
-        import resource
-        max_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    logging.info(f"taken snapshot {snapshot_file}. max RSS={max_rss / 1000:.2f} MB, current memory usage: {current / 10**6:.2f} MB, Peak memory usage: {peak / 10**6:.2f} MB")
-
-
-# SIGUSR2 handler: stop tracemalloc
-def stop_tracemalloc(signum, frame):
-    if tracemalloc.is_tracing():
-        logging.info("stop tracemalloc")
-        tracemalloc.stop()
-    else:
-        logging.info("tracemalloc not running")
 
 
 class TaskCanceledException(Exception):
@@ -701,7 +666,8 @@ async def run_raptor_for_kb(row, kb_parser_config, chat_mdl, embd_mdl, vector_si
         "doc_id": fake_doc_id,
         "kb_id": [str(row["kb_id"])],
         "docnm_kwd": row["name"],
-        "title_tks": rag_tokenizer.tokenize(row["name"])
+        "title_tks": rag_tokenizer.tokenize(row["name"]),
+        "raptor_kwd": "raptor"
     }
     if row["pagerank"]:
         doc[PAGERANK_FLD] = int(row["pagerank"])
@@ -1066,8 +1032,8 @@ async def main():
     logging.info(f'RAGFlow version: {get_ragflow_version()}')
     show_configs()
     settings.init_settings()
-    from api.settings import EMBEDDING_CFG
-    logging.info(f'api.settings.EMBEDDING_CFG: {EMBEDDING_CFG}')
+    from common import globals
+    logging.info(f'globals.EMBEDDING_CFG: {globals.EMBEDDING_CFG}')
     print_rag_settings()
     if sys.platform != "win32":
         signal.signal(signal.SIGUSR1, start_tracemalloc_and_snapshot)
