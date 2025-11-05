@@ -1,19 +1,3 @@
-import { RAGFlowAvatar } from '@/components/ragflow-avatar';
-import { useTheme } from '@/components/theme-provider';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Segmented, SegmentedValue } from '@/components/ui/segmented';
-import { LanguageList, LanguageMap, ThemeEnum } from '@/constants/common';
-import { useChangeLanguage } from '@/hooks/logic-hooks';
-import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
-import { useNavigateWithFromState } from '@/hooks/route-hook';
-import { useFetchUserInfo } from '@/hooks/user-setting-hooks';
-import { Routes } from '@/routes';
 import { camelCase } from 'lodash';
 import {
   ChevronDown,
@@ -30,6 +14,22 @@ import {
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'umi';
+import { RAGFlowAvatar } from '../components/ragflow-avatar';
+import { useTheme } from '../components/theme-provider';
+import { Button } from '../components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { Segmented, SegmentedValue } from '../components/ui/segmented';
+import { LanguageList, LanguageMap, ThemeEnum } from '../constants/common';
+import { useChangeLanguage } from '../hooks/logic-hooks';
+import { useNavigatePage } from '../hooks/logic-hooks/navigate-hooks';
+import { useNavigateWithFromState } from '../hooks/route-hook';
+import { useFetchUserInfo } from '../hooks/user-setting-hooks';
+import { Routes } from '../routes';
 import { BellButton } from './bell-button';
 
 const handleDocHelpCLick = () => {
@@ -53,7 +53,7 @@ export function Header() {
     changeLanguage(key);
   };
 
-  const items = LanguageList.map((x) => ({
+  const items = LanguageList.map((x: string) => ({
     key: x,
     label: <span>{LanguageMap[x as keyof typeof LanguageMap]}</span>,
   }));
@@ -132,7 +132,7 @@ export function Header() {
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            {items.map((x) => (
+            {items.map((x: any) => (
               <DropdownMenuItem key={x.key} onClick={handleItemClick(x.key)}>
                 {x.label}
               </DropdownMenuItem>

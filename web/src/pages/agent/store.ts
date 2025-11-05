@@ -104,7 +104,7 @@ const useGraphStore = create<RFState>()(
       clickedToolId: '',
       onNodesChange: (changes) => {
         set({
-          nodes: applyNodeChanges(changes, get().nodes),
+          nodes: applyNodeChanges(changes, structuredClone(get().nodes)),
         });
       },
       onEdgesChange: (changes: EdgeChange[]) => {
