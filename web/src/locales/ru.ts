@@ -138,7 +138,7 @@ export default {
       testing: 'Тестирование поиска',
       files: 'файлы',
       configuration: 'Конфигурация',
-      knowledgeGraph: 'Граф знаний',
+      // knowledgeGraph: 'Граф знаний',
       name: 'Название',
       namePlaceholder: 'Введите название!',
       doc: 'Документы',
