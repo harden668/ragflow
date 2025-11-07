@@ -110,7 +110,7 @@ export function Header() {
         <img
           src={'/ARP-logo.svg'}
           alt="logo"
-          className="size-10 mr-[12] cursor-pointer"
+          className="size-24 mr-[24] cursor-pointer"
           onClick={handleLogoClick}
         />
       </div>
