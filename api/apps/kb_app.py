@@ -16,6 +16,7 @@
 import json
 import logging
 import random
+import re
 
 from flask import request
 from flask_login import login_required, current_user
@@ -35,15 +36,12 @@ from api.db import VALID_FILE_TYPES
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.db_models import File
 from api.utils.api_utils import get_json_result
-from api import settings
 from rag.nlp import search
 from api.constants import DATASET_NAME_LIMIT
-from rag.settings import PAGERANK_FLD
 from rag.utils.redis_conn import REDIS_CONN
-from rag.utils.storage_factory import STORAGE_IMPL
-from rag.utils.doc_store_conn import OrderByExpr  
-from common.constants import RetCode, PipelineTaskType, StatusEnum, VALID_TASK_STATUS, FileSource, LLMType
-
+from rag.utils.doc_store_conn import OrderByExpr
+from common.constants import RetCode, PipelineTaskType, StatusEnum, VALID_TASK_STATUS, FileSource, LLMType, PAGERANK_FLD
+from common import settings
 
 @manager.route('/create', methods=['post'])  # noqa: F821
 @login_required
@@ -55,7 +53,7 @@ def create():
         tenant_id = current_user.id,
         parser_id = req.pop("parser_id", None),
         **req
-    )        
+    )
 
     try:
         if not KnowledgebaseService.save(**req):
@@ -105,6 +103,10 @@ def update():
                 message="Duplicated knowledgebase name.")
 
         del req["kb_id"]
+        connectors = []
+        if "connectors" in req:
+            connectors = req["connectors"]
+            del req["connectors"]
         if not KnowledgebaseService.update_by_id(kb.id, req):
             return get_data_error_result()
 
@@ -121,8 +123,12 @@ def update():
         if not e:
             return get_data_error_result(
                 message="Database error (Knowledgebase rename)!")
+        errors = Connector2KbService.link_connectors(kb.id, [conn for conn in connectors], current_user.id)
+        if errors:
+            logging.error("Link KB errors: ", errors)
         kb = kb.to_dict()
         kb.update(req)
+        kb["connectors"] = connectors
 
         return get_json_result(data=kb)
     except Exception as e:
@@ -228,8 +234,8 @@ def rm():
         for kb in kbs:
             settings.docStoreConn.delete({"kb_id": kb.id}, search.index_name(kb.tenant_id), kb.id)
             settings.docStoreConn.deleteIdx(search.index_name(kb.tenant_id), kb.id)
-            if hasattr(STORAGE_IMPL, 'remove_bucket'):
-                STORAGE_IMPL.remove_bucket(kb.id)
+            if hasattr(settings.STORAGE_IMPL, 'remove_bucket'):
+                settings.STORAGE_IMPL.remove_bucket(kb.id)
         return get_json_result(data=True)
     except Exception as e:
         return server_error_response(e)
@@ -566,7 +572,7 @@ def trace_graphrag():
 
     ok, task = TaskService.get_by_id(task_id)
     if not ok:
-        return get_error_data_result(message="GraphRAG Task Not Found or Error Occurred")
+        return get_json_result(data={})
 
     return get_json_result(data=task.to_dict())
 
@@ -726,6 +732,8 @@ def delete_kb_task():
     def cancel_task(task_id):
         REDIS_CONN.set(f"{task_id}-cancel", "x")
 
+    kb_task_id_field: str = ""
+    kb_task_finish_at: str = ""
     match pipeline_task_type:
         case PipelineTaskType.GRAPH_RAG:
             kb_task_id_field = "graphrag_task_id"
@@ -775,14 +783,14 @@ def check_embedding():
 
     def _to_1d(x):
         a = np.asarray(x, dtype=np.float32)
-        return a.reshape(-1)  
+        return a.reshape(-1)
 
     def _cos_sim(a, b, eps=1e-12):
         a = _to_1d(a)
         b = _to_1d(b)
         na = np.linalg.norm(a)
         nb = np.linalg.norm(b)
-        if na < eps or nb < eps: 
+        if na < eps or nb < eps:
             return 0.0
         return float(np.dot(a, b) / (na * nb))
 
@@ -802,7 +810,7 @@ def check_embedding():
             offset=0, limit=1,
             indexNames=index_nm, knowledgebaseIds=[kb_id]
         )
-        total = docStoreConn.getTotal(res0)
+        total = docStoreConn.get_total(res0)
         if total <= 0:
             return []
 
@@ -819,8 +827,8 @@ def check_embedding():
                 offset=off, limit=1,
                 indexNames=index_nm, knowledgebaseIds=[kb_id]
             )
-            ids = docStoreConn.getChunkIds(res1)
-            if not ids: 
+            ids = docStoreConn.get_chunk_ids(res1)
+            if not ids:
                 continue
 
             cid = ids[0]
@@ -840,8 +848,13 @@ def check_embedding():
                 "position_int": full_doc.get("position_int"),
                 "top_int": full_doc.get("top_int"),
                 "content_with_weight": full_doc.get("content_with_weight") or "",
+                "question_kwd": full_doc.get("question_kwd") or []
             })
         return out
+    
+    def _clean(s: str) -> str:
+        s = re.sub(r"</?(table|td|caption|tr|th)( [^<>]{0,12})?>", " ", s or "")
+        return s if s else "None"
     req = request.json
     kb_id = req.get("kb_id", "")
     embd_id = req.get("embd_id", "")
@@ -854,8 +867,10 @@ def check_embedding():
 
     results, eff_sims = [], []
     for ck in samples:
-        txt = (ck.get("content_with_weight") or "").strip()
-        if not txt:
+        title = ck.get("doc_name") or "Title"
+        txt_in = "\n".join(ck.get("question_kwd") or []) or ck.get("content_with_weight") or ""
+        txt_in = _clean(txt_in)
+        if not txt_in:
             results.append({"chunk_id": ck["chunk_id"], "reason": "no_text"})
             continue
 
@@ -864,8 +879,16 @@ def check_embedding():
             continue
 
         try:
-            qv, _ = emb_mdl.encode_queries(txt)  
-            sim = _cos_sim(qv, ck["vector"])
+            v, _ = emb_mdl.encode([title, txt_in])
+            sim_content = _cos_sim(v[1], ck["vector"])
+            title_w = 0.1
+            qv_mix = title_w * v[0] + (1 - title_w) * v[1]
+            sim_mix = _cos_sim(qv_mix, ck["vector"])
+            sim = sim_content
+            mode = "content_only"
+            if sim_mix > sim:
+                sim = sim_mix
+                mode = "title+content"
         except Exception:
             return get_error_data_result(message="embedding failure")
 
@@ -887,19 +910,10 @@ def check_embedding():
         "avg_cos_sim": round(float(np.mean(eff_sims)) if eff_sims else 0.0, 6),
         "min_cos_sim": round(float(np.min(eff_sims)) if eff_sims else 0.0, 6),
         "max_cos_sim": round(float(np.max(eff_sims)) if eff_sims else 0.0, 6),
+        "match_mode": mode,
     }
-    if summary["avg_cos_sim"] > 0.99:
+    if summary["avg_cos_sim"] > 0.9:
         return get_json_result(data={"summary": summary, "results": results})
     return get_json_result(code=RetCode.NOT_EFFECTIVE, message="failed", data={"summary": summary, "results": results})
 
-
-@manager.route("/<kb_id>/link", methods=["POST"])  # noqa: F821
-@validate_request("connector_ids")
-@login_required
-def link_connector(kb_id):
-    req = request.json
-    errors = Connector2KbService.link_connectors(kb_id, req["connector_ids"], current_user.id)
-    if errors:
-        return get_json_result(data=False, message=errors, code=RetCode.SERVER_ERROR)
-    return get_json_result(data=True)
 
