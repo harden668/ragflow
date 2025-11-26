@@ -395,6 +395,14 @@ export default {
       randomSeed: 'Случайное зерно',
       randomSeedMessage: 'Требуется случайное зерно',
       entityTypes: 'Типы сущностей',
+      entityType: 'Тип сущности',
+      material: 'Материал',
+      customer: 'Клиент',
+      salesOrder: 'Заказ на продажу',
+      purchaseOrder: 'Заказ на покупку',
+      inventory: 'Инвентарь',
+      productionOrder: 'Производственный заказ',
+      selectEntityType: 'Выберите тип сущности',
       vietnamese: 'Вьетнамский',
       pageRank: 'PageRank',
       pageRankTip: `Назначьте более высокий PageRank определенным базам знаний для повышения рейтинга их фрагментов.`,
@@ -1184,6 +1192,9 @@ export default {
       },
       publish: 'API',
       exeSQL: 'Выполнить SQL',
+      kingdee: 'Kingdee K/3 Cloud',
+      kingdeeDescription:
+        'Компонент для подключения к системе Kingdee K/3 Cloud для выполнения финансовых и операций цепочки поставок.',
       exeSQLDescription:
         'Выполняет SQL-запросы к реляционным БД (MySQL, PostgreSQL, MariaDB).',
       dbType: 'Тип БД',
@@ -1509,6 +1520,7 @@ export default {
         email: 'Отправка email',
         httpRequest: 'Вызов API',
         wenCai: 'Запрос финансовых данных',
+        kingdee: 'Запрос данных Kingdee',
       },
       goto: 'Ветка неудачи',
       comment: 'Значение по умолчанию',
@@ -1525,6 +1537,18 @@ export default {
         params: {
           a: 'Первое число',
           b: 'Второе число',
+        },
+      },
+      kingdee: {
+        name: 'Kingdee K/3 Cloud',
+        description:
+          'Инструмент для запроса данных из системы Kingdee K/3 Cloud',
+        params: {
+          entity_type:
+            'Тип сущности для запроса (материал, клиент, заказ на продажу, заказ на покупку, инвентарь, производственный заказ)',
+          conditions: 'Условия запроса в виде списка словарей',
+          fields: 'Поля для возврата в результате запроса',
+          limit: 'Максимальное количество записей для возврата',
         },
       },
     },

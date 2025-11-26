@@ -15,11 +15,12 @@ import { Input } from '@/components/ui/input';
 import { RAGFlowSelect } from '@/components/ui/select';
 import { IModalProps } from '@/interfaces/common';
 import { buildOptions } from '@/utils/form';
-import { loader } from '@monaco-editor/react';
+import { configureMonacoEditor } from '@/utils/monaco-config';
 import { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 
-loader.config({ paths: { vs: '/vs' } });
+// Configure Monaco editor
+configureMonacoEditor();
 
 export const FormId = 'EditMcpForm';
 

@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { configureMonacoEditor } from '@/utils/monaco-config';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Editor, { loader } from '@monaco-editor/react';
+import Editor from '@monaco-editor/react';
 import { Plus } from 'lucide-react';
 import { memo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -33,7 +34,8 @@ import { useEditVariableRecord } from './use-edit-variable';
 import { VariableDialog } from './variable-dialog';
 import { VariableTable } from './variable-table';
 
-loader.config({ paths: { vs: '/vs' } });
+// Configure Monaco editor
+configureMonacoEditor();
 
 enum Method {
   GET = 'GET',

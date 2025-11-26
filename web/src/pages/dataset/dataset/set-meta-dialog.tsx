@@ -23,11 +23,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { IDocumentInfo } from '@/interfaces/database/document';
-import Editor, { loader } from '@monaco-editor/react';
+import { configureMonacoEditor } from '@/utils/monaco-config';
+import Editor from '@monaco-editor/react';
 import DOMPurify from 'dompurify';
 import { useEffect } from 'react';
 
-loader.config({ paths: { vs: '/vs' } });
+// Configure Monaco editor
+configureMonacoEditor();
 
 export function SetMetaDialog({
   hideModal,

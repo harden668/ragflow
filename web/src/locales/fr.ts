@@ -254,7 +254,15 @@ export default {
       maxClusterMessage: 'Le nombre de groupes est requis',
       randomSeed: 'Graine aléatoire',
       randomSeedMessage: 'La graine est requise',
-      entityTypes: 'Types d’entités',
+      entityTypes: "Types d'entités",
+      entityType: "Type d'entité",
+      material: 'Matériel',
+      customer: 'Client',
+      salesOrder: 'Commande de vente',
+      purchaseOrder: 'Bon de commande',
+      inventory: 'Inventaire',
+      productionOrder: 'Ordre de production',
+      selectEntityType: "Sélectionner le type d'entité",
       vietnamese: 'Vietnamien',
       pageRank: 'Rang de page',
       pageRankTip:
@@ -951,6 +959,9 @@ export default {
       },
       publish: 'API',
       exeSQL: 'ExeSQL',
+      kingdee: 'Kingdee K/3 Cloud',
+      kingdeeDescription:
+        'Un composant pour se connecter au système Kingdee K/3 Cloud pour effectuer des opérations financières et de chaîne d’approvisionnement.',
       exeSQLDescription:
         'Un composant qui exécute des requêtes SQL sur une base de données relationnelle, supportant MySQL, PostgreSQL ou MariaDB.',
       dbType: 'Type de base de données',
@@ -1249,6 +1260,19 @@ export default {
         params: {
           a: 'Le premier nombre',
           b: 'Le deuxième nombre',
+        },
+      },
+      kingdee: {
+        name: 'Kingdee K/3 Cloud',
+        description:
+          'Un outil pour interroger les données du système Kingdee K/3 Cloud',
+        params: {
+          entity_type:
+            "Le type d'entité à interroger (matériel, client, bon de commande, bon d'achat, inventaire, ordre de production)",
+          conditions:
+            'Conditions de requête sous forme de liste de dictionnaires',
+          fields: 'Champs à retourner dans le résultat de la requête',
+          limit: "Nombre maximum d'enregistrements à retourner",
         },
       },
     },

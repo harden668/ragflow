@@ -151,7 +151,10 @@ class Graph:
         return self.components.get(cpn_id)["obj"].component_name
 
     def get_component_input_form(self, cpn_id) -> dict:
-        return self.components.get(cpn_id)["obj"].get_input_form()
+        component = self.components.get(cpn_id)
+        if not component:
+            return {}
+        return component["obj"].get_input_form()
 
     def get_tenant_id(self):
         return self._tenant_id

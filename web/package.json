@@ -164,7 +164,8 @@
     "terser-webpack-plugin": "^5.3.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.0.3",
-    "umi-plugin-icons": "^0.1.1"
+    "umi-plugin-icons": "^0.1.1",
+    "worker-loader": "^3.0.8"
   },
   "engines": {
     "node": ">=18.20.4"

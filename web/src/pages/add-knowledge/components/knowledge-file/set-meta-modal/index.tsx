@@ -1,13 +1,15 @@
 import { IModalProps } from '@/interfaces/common';
 import { IDocumentInfo } from '@/interfaces/database/document';
-import Editor, { loader } from '@monaco-editor/react';
+import { configureMonacoEditor } from '@/utils/monaco-config';
+import Editor from '@monaco-editor/react';
 
 import { Form, Modal } from 'antd';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-loader.config({ paths: { vs: '/vs' } });
+// Configure Monaco editor
+configureMonacoEditor();
 
 type FieldType = {
   meta?: string;

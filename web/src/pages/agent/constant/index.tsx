@@ -300,6 +300,23 @@ export const initialExeSqlValues = {
   },
 };
 
+export const initialKingdeeValues = {
+  entity_type: '',
+  conditions: [],
+  fields: [],
+  limit: 100,
+  outputs: {
+    formalized_content: {
+      value: '',
+      type: 'string',
+    },
+    json: {
+      value: [],
+      type: 'Array<Object>',
+    },
+  },
+};
+
 export const initialSwitchValues = {
   conditions: [
     {
@@ -680,6 +697,7 @@ export const RestrictedUpstreamMap = {
   [Operator.Extractor]: [Operator.Begin],
   [Operator.File]: [Operator.Begin],
   [Operator.VariableAssigner]: [Operator.Begin],
+  [Operator.Kingdee]: [Operator.Begin, Operator.Retrieval],
 };
 
 export const NodeMap = {
@@ -731,6 +749,7 @@ export const NodeMap = {
   [Operator.DataOperations]: 'dataOperationsNode',
   [Operator.VariableAssigner]: 'variableAssignerNode',
   [Operator.VariableAggregator]: 'variableAggregatorNode',
+  [Operator.Kingdee]: 'ragNode',
 };
 
 export enum BeginQueryType {

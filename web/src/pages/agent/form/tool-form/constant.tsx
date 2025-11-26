@@ -9,6 +9,7 @@ import ExeSQLForm from './exesql-form';
 import GithubForm from './github-form';
 import GoogleForm from './google-form';
 import GoogleScholarForm from './google-scholar-form';
+import KingdeeForm from './kingdee-form';
 import PubMedForm from './pubmed-form';
 import RetrievalForm from './retrieval-form';
 import SearXNGForm from './searxng-form';
@@ -37,4 +38,5 @@ export const ToolFormConfigMap = {
   [Operator.TavilyExtract]: TavilyForm,
   [Operator.WenCai]: WenCaiForm,
   [Operator.SearXNG]: SearXNGForm,
+  [Operator.Kingdee]: KingdeeForm,
 };

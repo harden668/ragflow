@@ -1,4 +1,5 @@
-import Editor, { loader } from '@monaco-editor/react';
+import { configureMonacoEditor } from '@/utils/monaco-config';
+import Editor from '@monaco-editor/react';
 import { INextOperatorForm } from '../../interface';
 
 import { FormContainer } from '@/components/form-container';
@@ -34,7 +35,8 @@ import {
   useWatchFormChange,
 } from './use-watch-change';
 
-loader.config({ paths: { vs: '/vs' } });
+// Configure Monaco editor
+configureMonacoEditor();
 
 const options = [
   ProgrammingLanguage.Python,

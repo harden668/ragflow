@@ -60,6 +60,16 @@ export default defineConfig({
 
     memo.optimization.minimizer('terser').use(TerserPlugin); // Fixed the issue that the page displayed an error after packaging lexical with terser
 
+    // Handle Monaco editor workers properly
+    memo.module
+      .rule('monaco-worker')
+      .test(/\.worker\.js$/)
+      .use('worker-loader')
+      .loader('worker-loader')
+      .options({
+        inline: 'no-fallback',
+      });
+
     // memo.plugin('eslint').use(ESLintPlugin, [
     //   {
     //     extensions: ['js', 'ts', 'tsx'],
